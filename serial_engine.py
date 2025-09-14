@@ -1,10 +1,12 @@
 import serial
 from serial.tools import list_ports
-from PyQt6.QtCore import pyqtSignal, QObject, QThread
-import time  # Importamos la librería time
+# CAMBIO: Importar de PySide6.QtCore en lugar de PyQt6.QtCore
+from PySide6.QtCore import Signal, QObject, QThread 
+import time
 
 class Monitor(QObject):
-    on_desconection = pyqtSignal()
+    # CAMBIO: Usar 'Signal' en lugar de 'pyqtSignal'
+    on_desconection = Signal()
 
     def __init__(self, conexion: serial.Serial):
         super().__init__()
@@ -16,7 +18,6 @@ class Monitor(QObject):
             print("Monitor: Iniciando vigilancia...")
             while self.is_running:
                 try:
-                    # Agregamos una pequeña pausa para no consumir todo el CPU
                     time.sleep(0.01) 
                     if self.conexion.in_waiting > 0:
                         message = self.conexion.readline().decode("utf-8").strip()
@@ -33,8 +34,9 @@ class Monitor(QObject):
         self.is_running = False
 
 class Serial_Engine(QObject):
-    connection_status = pyqtSignal(bool, str)
-    error = pyqtSignal(str)
+    # CAMBIO: Usar 'Signal' en lugar de 'pyqtSignal'
+    connection_status = Signal(bool, str)
+    error = Signal(str)
     
     def __init__(self):
         super().__init__()
@@ -61,7 +63,6 @@ class Serial_Engine(QObject):
             self.current_port = port
             self.isConnected = True
             
-            # Iniciar el monitor en un hilo separado
             self.start_monitor()
 
             print(f"SerialEngine: Conectado al puerto {self.current_port}")
@@ -113,7 +114,7 @@ class Serial_Engine(QObject):
 
 
 if __name__ == "__main__":
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
     import sys
 
     app = QApplication(sys.argv)
@@ -122,18 +123,14 @@ if __name__ == "__main__":
     print("Puertos disponibles:", engine.get_list_ports())
     
     if engine.get_list_ports():
-        # Conectarse al primer puerto disponible
         port_to_connect = engine.get_list_ports()[0]
         engine.connect_port(port_to_connect)
         print("Estado de la conexión:", engine.isConnected)
 
-        # Esperar un tiempo para que el monitor haga su trabajo
         time.sleep(5)
         
-        # Enviar un mensaje
         engine.send("Hello, Serial Port!")
         
-        # Esperar un poco más y luego desconectar
         time.sleep(2)
         engine.disconnect_port()
     else:
